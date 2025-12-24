@@ -30,19 +30,24 @@ header {
 }
 
 .msg {
-    max-width: 700px;
+    max-width: 750px;
     margin: 0 auto 15px;
-    padding: 12px 16px;
+    padding: 14px 18px;
     border-radius: 8px;
-    line-height: 1.5;
+    line-height: 1.6;
+    white-space: pre-wrap;
 }
 
+/* Usuário */
 .user {
     background: #444654;
+    border-left: 4px solid #19c37d;
 }
 
+/* IA */
 .bot {
     background: #3e3f4b;
+    border-left: 4px solid #8ab4f8;
 }
 
 footer {
@@ -53,13 +58,13 @@ footer {
 #form {
     display: flex;
     gap: 10px;
-    max-width: 700px;
+    max-width: 750px;
     margin: 0 auto;
 }
 
 #input {
     flex: 1;
-    padding: 12px;
+    padding: 14px;
     border-radius: 6px;
     border: none;
     outline: none;
@@ -69,7 +74,7 @@ footer {
 button {
     background: #19c37d;
     border: none;
-    padding: 0 18px;
+    padding: 0 22px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 16px;
@@ -95,6 +100,12 @@ button:hover {
 </footer>
 
 <script>
+const chat = document.getElementById("chat");
+
+/* 🔹 Carrega histórico salvo */
+const historico = JSON.parse(localStorage.getItem("lhama45_historico")) || [];
+historico.forEach(msg => adicionarMensagem(msg.texto, msg.tipo, false));
+
 async function enviar(e) {
     e.preventDefault();
 
@@ -105,23 +116,32 @@ async function enviar(e) {
     adicionarMensagem(texto, "user");
     input.value = "";
 
-    const resp = await fetch("/perguntar", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({texto})
-    });
+    try {
+        const resp = await fetch("/perguntar", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ texto })
+        });
 
-    const data = await resp.json();
-    adicionarMensagem(data.resposta, "bot");
+        const data = await resp.json();
+        adicionarMensagem(data.resposta, "bot");
+
+    } catch (err) {
+        adicionarMensagem("Erro ao conectar com o servidor.", "bot");
+    }
 }
 
-function adicionarMensagem(texto, classe) {
-    const chat = document.getElementById("chat");
+function adicionarMensagem(texto, tipo, salvar = true) {
     const div = document.createElement("div");
-    div.className = "msg " + classe;
+    div.className = "msg " + tipo;
     div.textContent = texto;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
+
+    if (salvar) {
+        historico.push({ texto, tipo });
+        localStorage.setItem("lhama45_historico", JSON.stringify(historico));
+    }
 }
 </script>
 
