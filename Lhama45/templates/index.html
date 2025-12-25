@@ -39,8 +39,13 @@ header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 15px;
+    padding: 0 16px;
     font-weight: bold;
+}
+
+/* Logo */
+#logo {
+    font-size: 18px;
 }
 
 /* Menu Button */
@@ -53,15 +58,16 @@ header {
 /* Sidebar */
 #sidebar {
     position: fixed;
-    top: 0;
-    right: -280px;
-    width: 280px;
-    height: 100%;
+    top: 56px;
+    right: -300px;
+    width: 300px;
+    height: calc(100% - 56px);
     background: var(--header);
     transition: right 0.3s;
-    padding: 20px;
+    padding: 16px;
     box-sizing: border-box;
     z-index: 1000;
+    overflow-y: auto;
 }
 
 #sidebar.open {
@@ -70,12 +76,14 @@ header {
 
 #sidebar h3 {
     margin-top: 0;
+    font-size: 16px;
 }
 
+/* Sidebar buttons */
 .sidebar-btn {
     display: block;
     width: 100%;
-    margin: 10px 0;
+    margin: 8px 0;
     padding: 10px;
     border: none;
     border-radius: 6px;
@@ -83,6 +91,25 @@ header {
     background: #19c37d;
     color: #000;
     font-weight: bold;
+    text-align: left;
+}
+
+/* Histórico */
+#historico {
+    margin-top: 16px;
+}
+
+.conversa {
+    padding: 8px;
+    border-radius: 6px;
+    background: #2a2b32;
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.conversa:hover {
+    opacity: 0.85;
 }
 
 /* Chat */
@@ -147,20 +174,19 @@ button {
 <body>
 
 <header>
-    <span>Lhama45</span>
-    <span id="menuBtn">☰</span>
+    <div id="logo">Lhama45</div>
+    <div id="menuBtn">☰</div>
 </header>
 
 <!-- Sidebar -->
 <div id="sidebar">
-    <h3>Menu</h3>
+    <h3>Configurações</h3>
 
-    <button class="sidebar-btn" onclick="abrirConfig()">Configurações</button>
+    <button class="sidebar-btn" onclick="setTema('dark')">Tema escuro</button>
+    <button class="sidebar-btn" onclick="setTema('light')">Tema claro</button>
 
-    <div id="config" style="display:none;">
-        <h4>Tema</h4>
-        <button class="sidebar-btn" onclick="setTema('dark')">🌙 Escuro</button>
-        <button class="sidebar-btn" onclick="setTema('light')">☀️ Claro</button>
+    <div id="historico">
+        <h3>Conversas</h3>
     </div>
 </div>
 
@@ -177,15 +203,13 @@ button {
 const sidebar = document.getElementById("sidebar");
 const menuBtn = document.getElementById("menuBtn");
 const chat = document.getElementById("chat");
+const historicoDiv = document.getElementById("historico");
 
 menuBtn.onclick = () => {
     sidebar.classList.toggle("open");
 };
 
-function abrirConfig() {
-    document.getElementById("config").style.display = "block";
-}
-
+/* Tema */
 function setTema(tema) {
     if (tema === "light") {
         document.body.classList.add("light");
@@ -195,11 +219,31 @@ function setTema(tema) {
     localStorage.setItem("lhama45_tema", tema);
 }
 
-/* Carregar tema salvo */
 const temaSalvo = localStorage.getItem("lhama45_tema");
 if (temaSalvo === "light") {
     document.body.classList.add("light");
 }
+
+/* Histórico simples por sessão */
+let conversas = JSON.parse(localStorage.getItem("lhama45_conversas")) || [];
+
+function atualizarHistorico() {
+    historicoDiv.innerHTML = "<h3>Conversas</h3>";
+    conversas.forEach((c, i) => {
+        const div = document.createElement("div");
+        div.className = "conversa";
+        div.textContent = "Conversa " + (i + 1);
+        div.onclick = () => carregarConversa(i);
+        historicoDiv.appendChild(div);
+    });
+}
+
+function carregarConversa(index) {
+    chat.innerHTML = "";
+    conversas[index].forEach(msg => adicionarMensagem(msg.texto, msg.tipo, false));
+}
+
+atualizarHistorico();
 
 async function enviar(e) {
     e.preventDefault();
@@ -221,17 +265,30 @@ async function enviar(e) {
         const data = await resp.json();
         adicionarMensagem(data.resposta, "bot");
 
+        salvarConversa();
+
     } catch {
         adicionarMensagem("Erro ao conectar com o servidor.", "bot");
     }
 }
 
-function adicionarMensagem(texto, tipo) {
+function adicionarMensagem(texto, tipo, salvar = true) {
     const div = document.createElement("div");
     div.className = "msg " + tipo;
     div.textContent = texto;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
+}
+
+function salvarConversa() {
+    const msgs = Array.from(chat.children).map(div => ({
+        texto: div.textContent,
+        tipo: div.classList.contains("user") ? "user" : "bot"
+    }));
+
+    conversas[0] = msgs;
+    localStorage.setItem("lhama45_conversas", JSON.stringify(conversas));
+    atualizarHistorico();
 }
 </script>
 
