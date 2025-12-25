@@ -6,82 +6,86 @@
 <title>Lhama45</title>
 
 <style>
+:root {
+    --bg: #343541;
+    --header: #202123;
+    --text: #ececf1;
+    --user: #444654;
+    --bot: #3e3f4b;
+}
+
+body.light {
+    --bg: #f5f5f5;
+    --header: #ffffff;
+    --text: #111;
+    --user: #e9e9e9;
+    --bot: #dcdcdc;
+}
+
 body {
     margin: 0;
-    background: #343541;
-    color: #ececf1;
+    background: var(--bg);
+    color: var(--text);
     font-family: Arial, Helvetica, sans-serif;
     height: 100vh;
     display: flex;
-}
-
-/* SIDEBAR */
-#sidebar {
-    width: 260px;
-    background: #202123;
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-}
-
-#nova-conversa {
-    background: #343541;
-    border: 1px solid #555;
-    color: #ececf1;
-    padding: 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-bottom: 10px;
-}
-
-.conversa {
-    padding: 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-bottom: 5px;
-    background: #2a2b32;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.conversa:hover {
-    background: #3e3f4b;
-}
-
-.conversa span {
-    flex: 1;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.delete {
-    color: #ff6b6b;
-    cursor: pointer;
-    margin-left: 8px;
-}
-
-/* CHAT */
-#main {
-    flex: 1;
-    display: flex;
     flex-direction: column;
 }
 
+/* Header */
 header {
-    background: #202123;
-    padding: 15px;
+    height: 56px;
+    background: var(--header);
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
+    padding: 0 15px;
     font-weight: bold;
 }
 
-header img {
-    height: 32px;
+/* Menu Button */
+#menuBtn {
+    font-size: 24px;
+    cursor: pointer;
+    user-select: none;
 }
 
+/* Sidebar */
+#sidebar {
+    position: fixed;
+    top: 0;
+    right: -280px;
+    width: 280px;
+    height: 100%;
+    background: var(--header);
+    transition: right 0.3s;
+    padding: 20px;
+    box-sizing: border-box;
+    z-index: 1000;
+}
+
+#sidebar.open {
+    right: 0;
+}
+
+#sidebar h3 {
+    margin-top: 0;
+}
+
+.sidebar-btn {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #19c37d;
+    color: #000;
+    font-weight: bold;
+}
+
+/* Chat */
 #chat {
     flex: 1;
     overflow-y: auto;
@@ -98,31 +102,26 @@ header img {
 }
 
 .user {
-    background: #444654;
+    background: var(--user);
     border-left: 4px solid #19c37d;
 }
 
 .bot {
-    background: #3e3f4b;
+    background: var(--bot);
     border-left: 4px solid #8ab4f8;
 }
 
-.typing {
-    opacity: 0.6;
-    font-style: italic;
-}
-
-/* INPUT */
+/* Footer */
 footer {
-    background: #202123;
     padding: 15px;
+    background: var(--header);
 }
 
 #form {
-    max-width: 750px;
-    margin: 0 auto;
     display: flex;
     gap: 10px;
+    max-width: 750px;
+    margin: 0 auto;
 }
 
 #input {
@@ -130,6 +129,7 @@ footer {
     padding: 14px;
     border-radius: 6px;
     border: none;
+    outline: none;
     font-size: 16px;
 }
 
@@ -146,151 +146,93 @@ button {
 
 <body>
 
-<!-- SIDEBAR -->
+<header>
+    <span>Lhama45</span>
+    <span id="menuBtn">☰</span>
+</header>
+
+<!-- Sidebar -->
 <div id="sidebar">
-    <button id="nova-conversa" onclick="criarConversa()">+ Nova conversa</button>
-    <div id="lista-conversas"></div>
+    <h3>Menu</h3>
+
+    <button class="sidebar-btn" onclick="abrirConfig()">Configurações</button>
+
+    <div id="config" style="display:none;">
+        <h4>Tema</h4>
+        <button class="sidebar-btn" onclick="setTema('dark')">🌙 Escuro</button>
+        <button class="sidebar-btn" onclick="setTema('light')">☀️ Claro</button>
+    </div>
 </div>
 
-<!-- CHAT -->
-<div id="main">
-    <header>
-        <img src="/static/logo.png">
-        <span>Lhama45</span>
-    </header>
+<div id="chat"></div>
 
-    <div id="chat"></div>
-
-    <footer>
-        <form id="form" onsubmit="enviar(event)">
-            <input id="input" placeholder="Digite sua mensagem..." autocomplete="off">
-            <button>Enviar</button>
-        </form>
-    </footer>
-</div>
+<footer>
+    <form id="form" onsubmit="enviar(event)">
+        <input id="input" placeholder="Digite sua mensagem..." autocomplete="off">
+        <button>Enviar</button>
+    </form>
+</footer>
 
 <script>
-let conversas = JSON.parse(localStorage.getItem("lhama45_conversas")) || {};
-let conversaAtual = localStorage.getItem("lhama45_atual");
+const sidebar = document.getElementById("sidebar");
+const menuBtn = document.getElementById("menuBtn");
+const chat = document.getElementById("chat");
 
-/* Criar conversa */
-function criarConversa() {
-    const id = "chat_" + Date.now();
-    conversas[id] = { titulo: "Nova conversa", mensagens: [] };
-    conversaAtual = id;
-    salvar();
-    renderSidebar();
-    renderChat();
+menuBtn.onclick = () => {
+    sidebar.classList.toggle("open");
+};
+
+function abrirConfig() {
+    document.getElementById("config").style.display = "block";
 }
 
-/* Apagar conversa */
-function apagarConversa(id) {
-    if (!confirm("Apagar esta conversa?")) return;
-    delete conversas[id];
-    conversaAtual = Object.keys(conversas)[0] || null;
-    salvar();
-    renderSidebar();
-    renderChat();
+function setTema(tema) {
+    if (tema === "light") {
+        document.body.classList.add("light");
+    } else {
+        document.body.classList.remove("light");
+    }
+    localStorage.setItem("lhama45_tema", tema);
 }
 
-/* Sidebar */
-function renderSidebar() {
-    const lista = document.getElementById("lista-conversas");
-    lista.innerHTML = "";
-
-    Object.keys(conversas).forEach(id => {
-        const div = document.createElement("div");
-        div.className = "conversa";
-
-        const span = document.createElement("span");
-        span.innerText = conversas[id].titulo;
-        span.onclick = () => {
-            conversaAtual = id;
-            salvar();
-            renderChat();
-        };
-
-        const del = document.createElement("span");
-        del.innerText = "🗑";
-        del.className = "delete";
-        del.onclick = () => apagarConversa(id);
-
-        div.appendChild(span);
-        div.appendChild(del);
-        lista.appendChild(div);
-    });
+/* Carregar tema salvo */
+const temaSalvo = localStorage.getItem("lhama45_tema");
+if (temaSalvo === "light") {
+    document.body.classList.add("light");
 }
 
-/* Chat */
-function renderChat() {
-    const chat = document.getElementById("chat");
-    chat.innerHTML = "";
-    if (!conversaAtual) return;
-
-    conversas[conversaAtual].mensagens.forEach(m => {
-        const div = document.createElement("div");
-        div.className = "msg " + m.tipo;
-        div.textContent = m.texto;
-        chat.appendChild(div);
-    });
-
-    chat.scrollTop = chat.scrollHeight;
-}
-
-/* Enviar */
 async function enviar(e) {
     e.preventDefault();
+
     const input = document.getElementById("input");
     const texto = input.value.trim();
-    if (!texto || !conversaAtual) return;
+    if (!texto) return;
 
-    const conv = conversas[conversaAtual];
-
-    // Renomeia automaticamente pela primeira pergunta
-    if (conv.mensagens.length === 0) {
-        conv.titulo = texto.slice(0, 30);
-    }
-
-    conv.mensagens.push({ texto, tipo: "user" });
+    adicionarMensagem(texto, "user");
     input.value = "";
-    renderChat();
-    salvar();
-
-    // Animação digitando
-    const typing = document.createElement("div");
-    typing.className = "msg bot typing";
-    typing.innerText = "Lhama45 está digitando...";
-    document.getElementById("chat").appendChild(typing);
-    document.getElementById("chat").scrollTop = chat.scrollHeight;
 
     try {
-        const r = await fetch("/perguntar", {
+        const resp = await fetch("/perguntar", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ texto })
         });
-        const data = await r.json();
-        typing.remove();
-        conv.mensagens.push({ texto: data.resposta, tipo: "bot" });
+
+        const data = await resp.json();
+        adicionarMensagem(data.resposta, "bot");
+
     } catch {
-        typing.remove();
-        conv.mensagens.push({ texto: "Erro de conexão.", tipo: "bot" });
+        adicionarMensagem("Erro ao conectar com o servidor.", "bot");
     }
-
-    renderChat();
-    salvar();
 }
 
-/* Salvar */
-function salvar() {
-    localStorage.setItem("lhama45_conversas", JSON.stringify(conversas));
-    localStorage.setItem("lhama45_atual", conversaAtual);
+function adicionarMensagem(texto, tipo) {
+    const div = document.createElement("div");
+    div.className = "msg " + tipo;
+    div.textContent = texto;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
 }
-
-/* Init */
-if (Object.keys(conversas).length === 0) criarConversa();
-renderSidebar();
-renderChat();
 </script>
 
 </body>
