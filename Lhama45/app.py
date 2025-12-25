@@ -1,22 +1,7 @@
-import os
-import webbrowser
 from flask import Flask, request, jsonify, render_template
-from llm import gerar_resposta
+import requests
 
-base_dir = os.path.abspath(os.path.dirname(__file__))
-
-app = Flask(
-    __name__,
-    template_folder=os.path.join(base_dir, "templates")
-)
-
-# Memória simples da conversa
-historico = [
-    {
-        "role": "system",
-        "content": "Você é a Lhama45, uma IA educada, clara e objetiva que responde em português."
-    }
-]
+app = Flask(__name__)
 
 @app.route("/")
 def index():
@@ -24,24 +9,24 @@ def index():
 
 @app.route("/perguntar", methods=["POST"])
 def perguntar():
-    global historico
-
     dados = request.json
-    pergunta = dados.get("texto", "").strip()
+    texto = dados.get("texto", "")
+    modo = dados.get("modo", "texto")
 
-    if pergunta == "":
-        return jsonify({"resposta": "Digite uma pergunta."})
+    if modo == "imagem":
+        imagens = buscar_imagens(texto)
+        return jsonify({"imagens": imagens})
 
-    historico.append({"role": "user", "content": pergunta})
-
-    resposta = gerar_resposta(historico)
-
-    historico.append({"role": "assistant", "content": resposta})
-
-    # Limita memória (economia de tokens)
-    historico = historico[-10:]
-
+    resposta = f"Você perguntou: {texto}\n\n(Essa resposta pode ser ligada à API OpenAI)"
     return jsonify({"resposta": resposta})
 
+def buscar_imagens(consulta):
+    base = "https://source.unsplash.com/featured/?"
+    return [
+        base + consulta,
+        base + consulta + ",1",
+        base + consulta + ",2"
+    ]
+
 if __name__ == "__main__":
-   app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=10000)
